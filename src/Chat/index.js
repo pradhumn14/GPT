@@ -1,6 +1,33 @@
 import React, { useState } from "react";
 import "../Css/Chat.css";
 
+const tds = {
+  start() {
+    this.decoder = new TextDecoder(this.encoding, this.options);
+  },
+  transform(chunk, controller) {
+    controller.enqueue(this.decoder.decode(chunk));
+  },
+};
+let _jstds_wm = new WeakMap(); /* info holder */
+class TextDecoderStream extends TransformStream {
+  constructor(encoding = "utf-8", { ...options } = {}) {
+    let t = { ...tds, encoding, options };
+
+    super(t);
+    _jstds_wm.set(this, t);
+  }
+  get encoding() {
+    return _jstds_wm.get(this).decoder.encoding;
+  }
+  get fatal() {
+    return _jstds_wm.get(this).decoder.fatal;
+  }
+  get ignoreBOM() {
+    return _jstds_wm.get(this).decoder.ignoreBOM;
+  }
+}
+
 const examples = [
   "How to use Tailwind CSS",
   "What is the best way for web development?",
@@ -13,18 +40,18 @@ const examples = [
 ];
 
 const Chat = () => {
-
-  // const userChat = [];
-
   const [userChat, setChat] = useState([]);
 
-  const [input, setInput] = useState('');
+  const [chatHistory, setchatHistory] = useState([]);
 
+  const [title, setTitle] = useState("");
+
+  const [input, setInput] = useState("");
 
   const handleSend = async () => {
     if (input.trim) {
-      setChat([...userChat, { role: 'user', content: input }]);
-      setInput('');
+      setChat([...userChat, { role: "user", content: input }]);
+      setInput("");
 
       const response = await fetch("http://localhost:8000/api/chat", {
         method: "POST",
@@ -60,6 +87,21 @@ const Chat = () => {
         ]);
       }
 
+      if (!title) {
+        const createTitle = await fetch("http://localhost:8000/api/title", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            title: input,
+          }),
+        });
+
+        const title = await createTitle.json();
+        setTitle(title?.title);
+        setchatHistory([...chatHistory, title]);
+      }
     }
   };
 
@@ -67,12 +109,18 @@ const Chat = () => {
     <div className="chat-container h-screen w-screen flex">
       <div className="left-part w-[20%] h-screen p-4">
         <div className="h-[5%]">
-          <button className=" w-full h-[50px] border rounded ">
+          <button
+            className=" w-full h-[50px] border rounded "
+            onClick={() => {
+              setChat([]);
+              setTitle("");
+            }}
+          >
             + New Chat
           </button>
         </div>
         <div className="chat-history h-[70%] shadow-lg overflow-scroll mb-4 hide-scroll-bar">
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((item, index) => (
+          {chatHistory.map((item, index) => (
             <div
               className="chat-item flex items-center py-3 text-center rounded mt-4 text-lg font-light px-8"
               key={index}
@@ -96,7 +144,8 @@ const Chat = () => {
                   <path d="M18 4a3 3 0 0 1 3 3v8a3 3 0 0 1 -3 3h-5l-5 3v-3h-2a3 3 0 0 1 -3 -3v-8a3 3 0 0 1 3 -3h12z"></path>
                 </svg>
               </span>
-              My chat history
+
+              <span className=" text-left">{item.title}</span>
             </div>
           ))}
         </div>
@@ -195,9 +244,13 @@ const Chat = () => {
                   )}
                 </span>
 
-                <div className=" leading-loose" style={{ whiteSpace: 'break-spaces'}}>{item.content}</div>
+                <div
+                  className=" leading-loose"
+                  style={{ whiteSpace: "break-spaces" }}
+                >
+                  {item.content}
+                </div>
               </div>
-
             ))}
           </div>
         ) : (
