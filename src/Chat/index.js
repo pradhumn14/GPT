@@ -1,18 +1,18 @@
-import React from "react";
+import React, { useState } from "react";
 import "../Css/Chat.css";
 
-const Chat = () => {
-  const examples = [
-    "How to use Tailwind CSS",
-    "What is the best way for web development?",
-    "How to use Tailwind CSS in React",
-    "Do you have any tips on how I can improve?",
-    "How to use Tailwind CSS in Gatsby",
-    "How to use Tailwind CSS in Angular",
-    "How to use Tailwind CSS in Next.js",
-    "How to use Tailwind CSS in Vue",
-  ];
+const examples = [
+  "How to use Tailwind CSS",
+  "What is the best way for web development?",
+  "How to use Tailwind CSS in React",
+  "Do you have any tips on how I can improve?",
+  "How to use Tailwind CSS in Gatsby",
+  "How to use Tailwind CSS in Angular",
+  "How to use Tailwind CSS in Next.js",
+  "How to use Tailwind CSS in Vue",
+];
 
+const Chat = () => {
   // const userChat = [
   //   {
   //     role: "user",
@@ -23,37 +23,11 @@ const Chat = () => {
   //     message: `I'm great thanks! What do you need help with?
   //     I'm great thanks! What do you need help with?
   //     I'm great thanks! What do you need help with?
-      
+
   //   I'm great thanks! What do you need help with?
   //   I'm great thanks! What do you need help with?
   //   I'm great thanks! What do you need help with?
-    
-  //   I'm great thanks! What do you need help with?
-  //   I'm great thanks! What do you need help with?
-  //   I'm great thanks! What do you need help with?`,
-  //   },
-  //   {
-  //     role: "user",
-  //     message: `Can you give me some advice about using tailwind css`,
-  //   },
-  //   {
-  //     role: "assistant",
-  //     message: `Sure! Here's a few steps that might be helpful.`,
-  //   },
-  //   {
-  //     role: "user",
-  //     message: `Hey! How are you doing today?`,
-  //   },
-  //   {
-  //     role: "assistant",
-  //     message: `I'm great thanks! What do you need help with?
-  //     I'm great thanks! What do you need help with?
-  //     I'm great thanks! What do you need help with?
-      
-  //   I'm great thanks! What do you need help with?
-  //   I'm great thanks! What do you need help with?
-  //   I'm great thanks! What do you need help with?
-    
+
   //   I'm great thanks! What do you need help with?
   //   I'm great thanks! What do you need help with?
   //   I'm great thanks! What do you need help with?`,
@@ -75,11 +49,37 @@ const Chat = () => {
   //     message: `I'm great thanks! What do you need help with?
   //     I'm great thanks! What do you need help with?
   //     I'm great thanks! What do you need help with?
-      
+
   //   I'm great thanks! What do you need help with?
   //   I'm great thanks! What do you need help with?
   //   I'm great thanks! What do you need help with?
-    
+
+  //   I'm great thanks! What do you need help with?
+  //   I'm great thanks! What do you need help with?
+  //   I'm great thanks! What do you need help with?`,
+  //   },
+  //   {
+  //     role: "user",
+  //     message: `Can you give me some advice about using tailwind css`,
+  //   },
+  //   {
+  //     role: "assistant",
+  //     message: `Sure! Here's a few steps that might be helpful.`,
+  //   },
+  //   {
+  //     role: "user",
+  //     message: `Hey! How are you doing today?`,
+  //   },
+  //   {
+  //     role: "assistant",
+  //     message: `I'm great thanks! What do you need help with?
+  //     I'm great thanks! What do you need help with?
+  //     I'm great thanks! What do you need help with?
+
+  //   I'm great thanks! What do you need help with?
+  //   I'm great thanks! What do you need help with?
+  //   I'm great thanks! What do you need help with?
+
   //   I'm great thanks! What do you need help with?
   //   I'm great thanks! What do you need help with?
   //   I'm great thanks! What do you need help with?`,
@@ -99,14 +99,64 @@ const Chat = () => {
   //   // },
   // ];
 
+  const userChat = [];
 
+  const [chat, setChat] = useState([]);
+
+  const [input, setInput] = useState("");
+
+  // const handleSend = async () => {
+  //   if (input.trim) {
+  //     setChat([...chat, { role: "user", content: input }]);
+  //     console.log(chat, "chat");
+  //     setInput("");
+  //     const response = await fetch("http://localhost:8000/api/chat", {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify({
+  //         messages: [...chat, { role: "user", content: input }],
+  //       }),
+  //     });
+
+  //     const resData = await response.json();
+  //     console.log(resData, "resData");
+  //     setChat([
+  //       ...chat,
+  //       { role: "user", content: input },
+  //       resData?.choices?.[0]?.message,
+  //     ]);
+  //   }
+  // };
 
   
+  const handleSend = async () => {
+    if (input.trim()) {
+      const userMessage = { role: "user", content: input };
+      setChat((prevChat) => [...prevChat, userMessage]);
+      setInput("");
 
-  const userChat = []
+      const response = await fetch("http://localhost:8000/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messages: [...chat, userMessage],
+        }),
+      });
 
+      const resData = await response.json();
+      const assistantMessage = {
+        role: "assistant",
+        content: resData?.choices?.[0]?.message,
+      };
+      setChat((prevChat) => [...prevChat, assistantMessage]);
+    }
+  };
 
-
+  
   return (
     <div className="chat-container h-screen w-screen flex">
       <div className="left-part w-[20%] h-screen p-4">
@@ -181,7 +231,11 @@ const Chat = () => {
         {userChat?.length > 0 ? (
           <div className=" h-[80%] overflow-scroll hide-scroll-bar pt-8">
             {userChat?.map((item, index) => (
-              <div className={` w-[60%] mx-auto p-6 text-white flex ${item.role === 'assistant' && ' bg-slate-900 rounded'}`}>
+              <div
+                className={` w-[60%] mx-auto p-6 text-white flex ${
+                  item.role === "assistant" && " bg-slate-900 rounded"
+                }`}
+              >
                 <span className=" mr-8 p-2 bg-slate-500 text-white rounded-full h-full">
                   {item.role === "user" ? (
                     <svg
@@ -234,7 +288,7 @@ const Chat = () => {
                     </svg>
                   )}
                 </span>
-                <div className=" leading-loose">{item.message}</div>
+                <div className=" leading-loose">{item.content}</div>
               </div>
             ))}
           </div>
@@ -244,7 +298,10 @@ const Chat = () => {
 
             <div className=" flex flex-wrap justify-around max-w-[900px]">
               {examples.map((item, index) => (
-                <div className=" text-lg font-light mt-4 min-w-[400px] p-4 border rounded cursor-pointer hover:bg-slate-800">
+                <div
+                  className=" text-lg font-light mt-4 min-w-[400px] p-4 border rounded cursor-pointer hover:bg-slate-800"
+                  onClick={() => setInput(item)}
+                >
                   {item}
                 </div>
               ))}
@@ -257,6 +314,8 @@ const Chat = () => {
             <div className=" w-[60%] flex justify-center relative">
               <input
                 type="text"
+                onChange={(e) => setInput(e.target.value)}
+                value={input}
                 className=" w-full bg-slate-800 text-white rounded-lg p-4 pr-16"
                 placeholder="Type your message here..."
               />
@@ -305,7 +364,12 @@ const Chat = () => {
                   </svg>
                 </span>
 
-                <span className=" p-2">
+                {/* Send Button */}
+
+                <span
+                  className=" p-2"
+                  onClick={() => (input.trim() ? handleSend() : undefined)}
+                >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     class="icon icon-tabler icon-tabler-send"
