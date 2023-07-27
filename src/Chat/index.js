@@ -13,129 +13,18 @@ const examples = [
 ];
 
 const Chat = () => {
-  // const userChat = [
-  //   {
-  //     role: "user",
-  //     message: `Hey! How are you doing today?`,
-  //   },
-  //   {
-  //     role: "assistant",
-  //     message: `I'm great thanks! What do you need help with?
-  //     I'm great thanks! What do you need help with?
-  //     I'm great thanks! What do you need help with?
 
-  //   I'm great thanks! What do you need help with?
-  //   I'm great thanks! What do you need help with?
-  //   I'm great thanks! What do you need help with?
+  // const userChat = [];
 
-  //   I'm great thanks! What do you need help with?
-  //   I'm great thanks! What do you need help with?
-  //   I'm great thanks! What do you need help with?`,
-  //   },
-  //   {
-  //     role: "user",
-  //     message: `Can you give me some advice about using tailwind css`,
-  //   },
-  //   {
-  //     role: "assistant",
-  //     message: `Sure! Here's a few steps that might be helpful.`,
-  //   },
-  //   {
-  //     role: "user",
-  //     message: `Hey! How are you doing today?`,
-  //   },
-  //   {
-  //     role: "assistant",
-  //     message: `I'm great thanks! What do you need help with?
-  //     I'm great thanks! What do you need help with?
-  //     I'm great thanks! What do you need help with?
+  const [userChat, setChat] = useState([]);
 
-  //   I'm great thanks! What do you need help with?
-  //   I'm great thanks! What do you need help with?
-  //   I'm great thanks! What do you need help with?
+  const [input, setInput] = useState('');
 
-  //   I'm great thanks! What do you need help with?
-  //   I'm great thanks! What do you need help with?
-  //   I'm great thanks! What do you need help with?`,
-  //   },
-  //   {
-  //     role: "user",
-  //     message: `Can you give me some advice about using tailwind css`,
-  //   },
-  //   {
-  //     role: "assistant",
-  //     message: `Sure! Here's a few steps that might be helpful.`,
-  //   },
-  //   {
-  //     role: "user",
-  //     message: `Hey! How are you doing today?`,
-  //   },
-  //   {
-  //     role: "assistant",
-  //     message: `I'm great thanks! What do you need help with?
-  //     I'm great thanks! What do you need help with?
-  //     I'm great thanks! What do you need help with?
 
-  //   I'm great thanks! What do you need help with?
-  //   I'm great thanks! What do you need help with?
-  //   I'm great thanks! What do you need help with?
-
-  //   I'm great thanks! What do you need help with?
-  //   I'm great thanks! What do you need help with?
-  //   I'm great thanks! What do you need help with?`,
-  //   },
-  //   {
-  //     role: "user",
-  //     message: `Can you give me some advice about using tailwind css`,
-  //   },
-  //   {
-  //     role: "assistant",
-  //     message: `Sure! Here's a few steps that might be helpful.`,
-  //   },
-  //   // {
-  //   //   role: "system",
-  //   //   content:
-  //   //     "You are a helpful assistant. Behave like an AI Analysis Model for analyzing questions",
-  //   // },
-  // ];
-
-  const userChat = [];
-
-  const [chat, setChat] = useState([]);
-
-  const [input, setInput] = useState("");
-
-  // const handleSend = async () => {
-  //   if (input.trim) {
-  //     setChat([...chat, { role: "user", content: input }]);
-  //     console.log(chat, "chat");
-  //     setInput("");
-  //     const response = await fetch("http://localhost:8000/api/chat", {
-  //       method: "POST",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //       },
-  //       body: JSON.stringify({
-  //         messages: [...chat, { role: "user", content: input }],
-  //       }),
-  //     });
-
-  //     const resData = await response.json();
-  //     console.log(resData, "resData");
-  //     setChat([
-  //       ...chat,
-  //       { role: "user", content: input },
-  //       resData?.choices?.[0]?.message,
-  //     ]);
-  //   }
-  // };
-
-  
   const handleSend = async () => {
-    if (input.trim()) {
-      const userMessage = { role: "user", content: input };
-      setChat((prevChat) => [...prevChat, userMessage]);
-      setInput("");
+    if (input.trim) {
+      setChat([...userChat, { role: 'user', content: input }]);
+      setInput('');
 
       const response = await fetch("http://localhost:8000/api/chat", {
         method: "POST",
@@ -143,20 +32,37 @@ const Chat = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          messages: [...chat, userMessage],
+          messages: [
+            ...userChat,
+            {
+              role: "user",
+              content: input,
+            },
+          ],
         }),
       });
 
-      const resData = await response.json();
-      const assistantMessage = {
-        role: "assistant",
-        content: resData?.choices?.[0]?.message,
-      };
-      setChat((prevChat) => [...prevChat, assistantMessage]);
+      const readData = response.body
+        .pipeThrough(new TextDecoderStream())
+        .getReader();
+      let aiRes = "";
+
+      while (true) {
+        const { done, value } = await readData.read();
+        if (done) {
+          break;
+        }
+        aiRes += value;
+        setChat([
+          ...userChat,
+          { role: "user", content: input },
+          { role: "assistant", content: aiRes },
+        ]);
+      }
+
     }
   };
 
-  
   return (
     <div className="chat-container h-screen w-screen flex">
       <div className="left-part w-[20%] h-screen p-4">
@@ -288,8 +194,10 @@ const Chat = () => {
                     </svg>
                   )}
                 </span>
-                <div className=" leading-loose">{item.content}</div>
+
+                <div className=" leading-loose" style={{ whiteSpace: 'break-spaces'}}>{item.content}</div>
               </div>
+
             ))}
           </div>
         ) : (
