@@ -1,5 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import "../Css/Chat.css";
+import SpeechRecognition, {
+  useSpeechRecognition,
+} from "react-speech-recognition";
 
 const tds = {
   start() {
@@ -47,6 +50,20 @@ const Chat = () => {
   const [title, setTitle] = useState("");
 
   const [input, setInput] = useState("");
+
+  const { transcript, listening, resetTranscript } = useSpeechRecognition();
+
+  const startListening = () => {
+    SpeechRecognition.startListening({ continuous: true, language: "en-IN" });
+    // console.log("start listening");
+  };
+
+  const stopListening = () => {
+    // console.log(transcript);
+    SpeechRecognition.stopListening();
+    setInput(transcript);
+    resetTranscript(); // clear the text in microphone after recording is done
+  };
 
   const handleSend = async () => {
     if (input.trim) {
@@ -104,6 +121,27 @@ const Chat = () => {
       }
     }
   };
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "b") {
+        // console.log("Control + B / Command + B pressed");
+        startListening();
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "m") {
+        // console.log("Control + M / Command + M pressed");
+        stopListening();
+        resetTranscript();
+      } else if (e.key === "Enter") {
+        // console.log("Enter Pressed");
+        handleSend();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    // Clean up the event listener when the component unmounts
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [stopListening, resetTranscript]);
 
   return (
     <div className="chat-container h-screen w-screen flex">
@@ -282,48 +320,49 @@ const Chat = () => {
               />
 
               <div className=" absolute right-4 top-2 flex cursor-pointer">
-                {/* RECORD Button */}
+                {/* RECORD, STOP Button */}
+                {/* Toggle Button */}
 
-                <span className=" p-2">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="icon icon-tabler icon-tabler-microphone"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    stroke-width="2"
-                    stroke="currentColor"
-                    fill="none"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                    <path d="M9 2m0 3a3 3 0 0 1 3 -3h0a3 3 0 0 1 3 3v5a3 3 0 0 1 -3 3h0a3 3 0 0 1 -3 -3z"></path>
-                    <path d="M5 10a7 7 0 0 0 14 0"></path>
-                    <path d="M8 21l8 0"></path>
-                    <path d="M12 17l0 4"></path>
-                  </svg>
-                </span>
-
-                {/* STOP Button */}
-
-                <span className=" p-2">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="icon icon-tabler icon-tabler-player-stop"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    stroke-width="2"
-                    stroke="currentColor"
-                    fill="none"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                    <path d="M5 5m0 2a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2z"></path>
-                  </svg>
-                </span>
+                {listening ? (
+                  <span className=" p-2" onClick={stopListening}>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="icon icon-tabler icon-tabler-player-stop"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      stroke-width="2"
+                      stroke="currentColor"
+                      fill="none"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                      <path d="M5 5m0 2a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2z"></path>
+                    </svg>
+                  </span>
+                ) : (
+                  <span className=" p-2" onClick={startListening}>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="icon icon-tabler icon-tabler-microphone"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      stroke-width="2"
+                      stroke="currentColor"
+                      fill="none"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                      <path d="M9 2m0 3a3 3 0 0 1 3 -3h0a3 3 0 0 1 3 3v5a3 3 0 0 1 -3 3h0a3 3 0 0 1 -3 -3z"></path>
+                      <path d="M5 10a7 7 0 0 0 14 0"></path>
+                      <path d="M8 21l8 0"></path>
+                      <path d="M12 17l0 4"></path>
+                    </svg>
+                  </span>
+                )}
 
                 {/* Send Button */}
 
