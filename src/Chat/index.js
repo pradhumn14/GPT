@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import "../Css/Chat.css";
 import SpeechRecognition, {
   useSpeechRecognition,
 } from "react-speech-recognition";
+import AudioPlayer from "../components/AudioPlayer";
 
 const tds = {
   start() {
@@ -53,74 +54,107 @@ const Chat = () => {
 
   const { transcript, listening, resetTranscript } = useSpeechRecognition();
 
-  const startListening = () => {
-    SpeechRecognition.startListening({ continuous: true, language: "en-IN" });
-    // console.log("start listening");
-  };
 
-  const stopListening = () => {
-    // console.log(transcript);
+  const startListening = useCallback(() => {
+    SpeechRecognition.startListening({ continuous: true, language: "en-IN" });
+    console.log("start listening");
+  }, []);
+
+  const stopListening = useCallback(() => {
+    console.log("stop listening");
+    console.log(transcript);
     SpeechRecognition.stopListening();
     setInput(transcript);
-    resetTranscript(); // clear the text in microphone after recording is done
-  };
+    // resetTranscript(); // clear the text in microphone after recording is done
+  }, [transcript]);
 
-  const handleSend = async () => {
-    if (input.trim) {
-      setChat([...userChat, { role: "user", content: input }]);
-      setInput("");
-
-      const response = await fetch("http://localhost:8000/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messages: [
-            ...userChat,
-            {
-              role: "user",
-              content: input,
-            },
-          ],
-        }),
-      });
-
-      const readData = response.body
-        .pipeThrough(new TextDecoderStream())
-        .getReader();
-      let aiRes = "";
-
-      while (true) {
-        const { done, value } = await readData.read();
-        if (done) {
-          break;
-        }
-        aiRes += value;
-        setChat([
-          ...userChat,
-          { role: "user", content: input },
-          { role: "assistant", content: aiRes },
-        ]);
-      }
-
-      if (!title) {
-        const createTitle = await fetch("http://localhost:8000/api/title", {
+  const handleSend = useCallback(
+    async () => {
+      if (input.trim()) {
+        setChat([...userChat, { role: "user", content: input }]);
+        setInput("");
+        resetTranscript();
+        const response = await fetch("http://localhost:8000/api/chat", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            title: input,
+            messages: [
+              ...userChat,
+              {
+                role: "user",
+                content: input,
+              },
+            ],
           }),
         });
 
-        const title = await createTitle.json();
-        setTitle(title?.title);
-        setchatHistory([...chatHistory, title]);
+        // Show typing effect while waiting for the audio URL
+        setChat([
+          ...userChat,
+          { role: "user", content: input },
+          { role: "assistant", content: "Loading..." },
+        ]);
+
+        const readData = response.body
+          .pipeThrough(new TextDecoderStream())
+          .getReader();
+        let aiRes = "";
+
+        console.log(readData);
+
+        while (true) {
+          const { done, value } = await readData.read();
+          if (done) {
+            break;
+          }
+          aiRes += value;
+
+        }
+
+        // Delay before calling the AudioPlayer to simulate typing effect
+        const typingDelay = 30; // 0.1 second delay (adjust as needed)
+
+        // Get the audio URL from AudioPlayer
+        const audioUrl = await AudioPlayer(aiRes);
+
+        const audio = new Audio(audioUrl);
+        audio.play();
+        
+        for (let i = 0; i < aiRes.length; i++) {
+          await new Promise((resolve) => setTimeout(resolve, typingDelay));
+          const partialAIRes = aiRes.substring(0, i + 1);
+          setChat([
+            ...userChat,
+            { role: "user", content: input },
+            { role: "assistant", content: partialAIRes },
+          ]);
+        }
+
+        if (!title) {
+          const createTitle = await fetch("http://localhost:8000/api/title", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              title: input,
+            }),
+          });
+
+          const title = await createTitle.json();
+          setTitle(title?.title);
+          setchatHistory([...chatHistory, title]);
+        }
       }
-    }
-  };
+    },
+    [input,
+    chatHistory,
+    title,
+      userChat,
+    resetTranscript]
+  );
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -130,7 +164,7 @@ const Chat = () => {
       } else if ((e.ctrlKey || e.metaKey) && e.key === "m") {
         // console.log("Control + M / Command + M pressed");
         stopListening();
-        resetTranscript();
+        // resetTranscript();
       } else if (e.key === "Enter") {
         // console.log("Enter Pressed");
         handleSend();
@@ -141,7 +175,7 @@ const Chat = () => {
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [stopListening, resetTranscript]);
+  }, [handleSend, stopListening, startListening]);
 
   return (
     <div className="chat-container h-screen w-screen flex">
@@ -320,6 +354,7 @@ const Chat = () => {
               />
 
               <div className=" absolute right-4 top-2 flex cursor-pointer">
+                
                 {/* RECORD, STOP Button */}
                 {/* Toggle Button */}
 
@@ -395,6 +430,7 @@ const Chat = () => {
             </small>
           </div>
         </div>
+
       </div>
     </div>
   );
